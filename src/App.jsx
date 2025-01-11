@@ -6,6 +6,7 @@ import Information from './components/Information'
 import Transcribing from './components/Transcribing'
 import { MessageTypes } from './utils/presets'
 
+
 function App() {
   const [file, setFile] = useState(null)
   const [audioStream, setAudioStream] = useState(null)
@@ -69,7 +70,7 @@ function App() {
     if (!file && !audioStream) { return }
 
     let audio = await readAudioFrom(file ? file : audioStream)
-    const model_name = `openai/whisper-tiny.en`
+    const model_name = `Xenova/whisper-small`
 
     worker.current.postMessage({
       type: MessageTypes.INFERENCE_REQUEST,

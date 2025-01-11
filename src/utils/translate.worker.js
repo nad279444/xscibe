@@ -1,8 +1,11 @@
-import { pipeline } from '@xenova/transformers';
+import { pipeline,env } from '@xenova/transformers';
+env.allowLocalModels = false;
 
 class MyTranslationPipeline {
     static task = 'translation';
-    static model = 'Xenova/nllb-200-distilled-600M';
+    //static model = 'Xenova/nllb-200-distilled-600M';
+    //static model = 'Xenova/t5-base'
+    static model = 'Xenova/m2m100_418M'
     static instance = null;
 
     static async getInstance(progress_callback = null) {
@@ -21,7 +24,7 @@ self.addEventListener('message', async (event) => {
     console.log(event.data)
     let output = await translator(event.data.text, {
         tgt_lang: event.data.tgt_lang,
-        src_lang: event.data.src_lang,
+        src_lang: 'en',
 
         callback_function: x => {
             self.postMessage({

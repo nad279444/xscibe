@@ -53,7 +53,7 @@ export default function Information(props) {
         const element = document.createElement("a")
         const file = new Blob([textElement], { type: 'text/plain' })
         element.href = URL.createObjectURL(file)
-        element.download = `Freescribe_${new Date().toString()}.txt`
+        element.download = `xscribe_${new Date().toString()}.txt`
         document.body.appendChild(element)
         element.click()
     }
