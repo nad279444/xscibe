@@ -32,19 +32,19 @@ src/
   lib/export/           SRT / VTT / JSON / TXT renderers
   lib/openai/           streaming chat client, WebRTC Live session
   components/           one component per screen, no business logic
-api/                    Vercel edge functions (chat, live SDP exchange, rate-limited)
+  app/api/               Next.js route handlers (chat, live SDP exchange, rate-limited)
 ```
 
 - **Model downloads** stream from the Hugging Face Hub into the browser (first run only,
   cached by the browser). Model size and device are shown in the UI.
 - **Rate limiting** for the edge functions is a per-instance token bucket
-  (`api/_shared.ts`) — good enough for a demo, not a substitute for a real quota system.
+  (`src/lib/server/rateLimit.ts`) — good enough for a demo, not a substitute for a real quota system.
 
 ## Development
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 — transcription works without any API key
+npm run dev        # http://localhost:3000 — transcription works without any API key
 npm run typecheck  # tsc --noEmit
 npm test           # vitest (machine, guard, exports)
 npm run lint       # eslint
@@ -55,7 +55,7 @@ Transcription, live mode, exports and the guard are fully offline. The **Ask** a
 **Voice** tabs need OpenAI credentials:
 
 ```bash
-# .env.local (never commit; browser code only sees VITE_-prefixed vars, none are used for the key)
+# .env.local (never commit; the API key is only read by server routes)
 OPENAI_API_KEY=sk-...
 # optional overrides
 CHAT_MODEL=gpt-6-luna
@@ -63,7 +63,7 @@ LIVE_MODEL=gpt-live-1
 LIVE_VOICE=marin
 ```
 
-The API key is only ever read server-side in `api/` — it is never shipped to the browser.
+The API key is only ever read server-side in `src/app/api/` — it is never shipped to the browser.
 
 ## Deploy (Vercel)
 
@@ -72,8 +72,7 @@ vercel
 ```
 
 Set `OPENAI_API_KEY` (and optionally the model overrides) in the project's Environment
-Variables. Edge functions are declared per file via `export const config = { runtime: 'edge' }`;
-`api/_shared.ts` is underscore-prefixed so Vercel does not expose it as an endpoint.
+Variables. The API endpoints are Next.js route handlers under `src/app/api/`.
 
 Keep the OpenAI spend cap low (≈ $3) — voice sessions bill per second while connected.
 
@@ -82,5 +81,5 @@ Keep the OpenAI spend cap low (≈ $3) — voice sessions bill per second while 
 - Translation was deliberately dropped: language detection added surface area without
   strengthening the core transcript → answer → voice story.
 - `public/` self-hosts the VAD worklet + Silero model so live mode does not depend on a CDN.
-- Font Awesome and Google Fonts still load from CDNs in `index.html`; self-hosting them is
+- Font Awesome and Google Fonts still load from CDNs in `src/app/layout.tsx`; self-hosting them is
   an easy follow-up hardening step.

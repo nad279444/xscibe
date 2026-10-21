@@ -1,6 +1,6 @@
-import { clientIp, jsonError, rateLimit } from './_shared'
+import { clientIp, jsonError, rateLimit } from '@/lib/server/rateLimit'
 
-export const config = { runtime: 'edge' }
+export const dynamic = 'force-dynamic'
 
 const MAX_TRANSCRIPT_CHARS = 150_000
 const MAX_QUESTION_CHARS = 4_000
@@ -29,10 +29,7 @@ function asHistory(value: unknown): { role: 'user' | 'assistant'; content: strin
   return turns
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return jsonError(405, 'Method not allowed')
-  }
+export async function POST(request: Request): Promise<Response> {
   if (!rateLimit(clientIp(request), 8)) {
     return jsonError(429, 'Too many requests, slow down')
   }
@@ -137,4 +134,8 @@ export default async function handler(request: Request): Promise<Response> {
       'Cache-Control': 'no-store',
     },
   })
+}
+
+export async function GET(): Promise<Response> {
+  return jsonError(405, 'Method not allowed')
 }

@@ -1,6 +1,6 @@
-import { clientIp, jsonError, rateLimit } from './_shared'
+import { clientIp, jsonError, rateLimit } from '@/lib/server/rateLimit'
 
-export const config = { runtime: 'edge' }
+export const dynamic = 'force-dynamic'
 
 const MAX_CONTEXT_CHARS = 24_000
 const MAX_INSTRUCTIONS_CHARS = 8_000
@@ -10,10 +10,7 @@ interface LiveBody {
   context?: unknown
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return jsonError(405, 'Method not allowed')
-  }
+export async function POST(request: Request): Promise<Response> {
   if (!rateLimit(clientIp(request), 6)) {
     return jsonError(429, 'Too many voice sessions, slow down')
   }
@@ -84,4 +81,8 @@ export default async function handler(request: Request): Promise<Response> {
     status: upstream.status,
     headers: { 'Content-Type': 'application/json' },
   })
+}
+
+export async function GET(): Promise<Response> {
+  return jsonError(405, 'Method not allowed')
 }

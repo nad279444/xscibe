@@ -147,6 +147,7 @@ async function runTranscription(
     }
 
     post({ kind: 'READY', device, modelKey })
+    post({ kind: 'PROGRESS', requestId, progress: { phase: 'warmup' } })
 
     const completedChunks: string[] = []
     let currentChunk = ''

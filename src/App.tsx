@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useMemo, useReducer, useRef } from 'react'
 import { initialState, reducer } from './app/machine'
 import type { AsrRequest, AsrResponse } from './protocol/messages'
@@ -185,7 +187,7 @@ export default function App() {
         requestId,
         modelKey: stateRef.current.modelKey,
         device: stateRef.current.device ?? 'wasm',
-      } satisfies AsrRequest)
+      } satisfies AsrRequest, [samples.buffer])
     } catch (error) {
       dispatch({
         type: 'WORKER_ERROR',
