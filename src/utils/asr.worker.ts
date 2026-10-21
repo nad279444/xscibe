@@ -11,6 +11,16 @@ import { groupWordsIntoSegments } from '../lib/audio/decode'
 
 env.allowLocalModels = false
 
+const onnxRuntime = env.backends.onnx
+const onnxVersion = onnxRuntime.versions?.web
+if (onnxRuntime.wasm && onnxVersion) {
+  const wasmAssetBase = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${onnxVersion}/dist/`
+  onnxRuntime.wasm.wasmPaths = {
+    mjs: `${wasmAssetBase}ort-wasm-simd-threaded.asyncify.mjs`,
+    wasm: `${wasmAssetBase}ort-wasm-simd-threaded.asyncify.wasm`,
+  }
+}
+
 interface RawWordChunk {
   text: string
   timestamp: [number | null, number | null]
