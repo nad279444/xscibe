@@ -29,6 +29,7 @@ export interface AppState {
   source: AudioSource | null
   modelKey: ModelKey
   device: Device | null
+  deviceWarning: string | null
   transcript: Transcript | null
   partialText: string
   progress: ModelProgress | null
@@ -44,6 +45,7 @@ export const initialState: AppState = {
   source: null,
   modelKey: 'small',
   device: null,
+  deviceWarning: null,
   transcript: null,
   partialText: '',
   progress: null,
@@ -58,8 +60,8 @@ export type AppEvent =
   | { type: 'SELECT_SOURCE'; source: AudioSource }
   | { type: 'RESET' }
   | { type: 'SET_MODEL'; modelKey: ModelKey }
-  | { type: 'DEVICE_DETECTED'; device: Device }
-  | { type: 'WORKER_READY'; device: Device }
+  | { type: 'DEVICE_DETECTED'; device: Device; warning?: string }
+  | { type: 'WORKER_READY'; device: Device; fallbackReason?: string }
   | { type: 'SUBMIT_FILE' }
   | { type: 'TRANSCRIBE_STARTED' }
   | { type: 'WORKER_PROGRESS'; progress: ModelProgress }
@@ -90,6 +92,8 @@ export function reducer(state: AppState, event: AppEvent): AppState {
       return {
         ...initialState,
         modelKey: state.modelKey,
+        device: state.device,
+        deviceWarning: state.deviceWarning,
         source: event.source,
         phase: { status: 'ready' },
       }
@@ -101,8 +105,14 @@ export function reducer(state: AppState, event: AppEvent): AppState {
       return { ...state, modelKey: event.modelKey }
 
     case 'DEVICE_DETECTED':
+      return { ...state, device: event.device, deviceWarning: event.warning ?? null }
+
     case 'WORKER_READY':
-      return { ...state, device: event.device }
+      return {
+        ...state,
+        device: event.device,
+        deviceWarning: event.fallbackReason ?? state.deviceWarning,
+      }
 
     case 'SUBMIT_FILE':
       if (!state.source || state.phase.status !== 'ready') return state

@@ -17,6 +17,8 @@ a streaming LLM, or have a real-time voice conversation about it.
 | Exports | SRT, WebVTT, JSON (per-word) and plain text. |
 | Ask the transcript | Streaming Q&A over the Responses API (`gpt-6-luna`, prompt caching, `reasoning.effort: low`), grounded strictly in the transcript text. |
 | Voice chat | GPT-Live over WebRTC: one stateless edge function exchanges SDP, then your mic and the model's speech stream peer-to-peer. Live captions render alongside the audio. |
+| Robot-inspired dashboard | The landing screen puts file transcription, microphone recording, and live transcription up front, with chat and voice features previewed. |
+| Transcript chat | Chat opens as the first result view. Ask questions grounded in the transcript, then switch to word-timed text, exports, or voice chat. |
 | State handling | A strict `useReducer` state machine (`src/app/machine.ts`) owns every phase — the UI is a pure function of state, with exhaustive event checking at compile time. |
 | Worker protocol | The ASR worker and the app talk over typed messages only (`src/protocol/messages.ts`); queued jobs, per-request cancellation and WebGPU→WASM auto-fallback live in the worker. |
 
@@ -37,6 +39,7 @@ src/
 
 - **Model downloads** stream from the Hugging Face Hub into the browser (first run only,
   cached by the browser). Model size and device are shown in the UI.
+- **GPU fallback diagnostics** show the WebGPU initialization error when a model falls back to WASM. The device badge also reports when the browser does not expose WebGPU or cannot find an adapter.
 - **Rate limiting** for the edge functions is a per-instance token bucket
   (`src/lib/server/rateLimit.ts`) — good enough for a demo, not a substitute for a real quota system.
 
@@ -64,6 +67,14 @@ LIVE_VOICE=marin
 ```
 
 The API key is only ever read server-side in `src/app/api/` — it is never shipped to the browser.
+
+## WebGPU troubleshooting
+
+Having a discrete or integrated GPU does not guarantee browser WebGPU access. The browser must expose the WebGPU API, run in a secure context (HTTPS or localhost), and be able to create a compatible adapter with its current driver and settings. GPU access can be disabled by an unsupported browser/version, outdated or blocked drivers, browser flags, remote desktop, or device policy.
+
+XScribe first asks the browser for a WebGPU adapter, then asks Transformers.js and ONNX Runtime Web to load Whisper on that device. Adapter detection alone does not prove that this particular model/runtime can initialize. Selecting a file now preserves the detected device choice; previously the app reset it and explicitly requested WASM for every file. If model setup still fails, XScribe shows the actual WebGPU setup error beside the device badge.
+
+For best results, try an up-to-date Chrome or Edge on the local machine, open the site over HTTPS, update the GPU driver, and check that hardware acceleration is enabled. If the badge says WASM, use the reported reason to distinguish browser/adapter availability from a model/runtime initialization failure. WASM runs on the CPU and can be much slower, especially with the `small` Whisper model; selecting `tiny` or `base` trades some accuracy for faster transcription.
 
 ## Deploy (Vercel)
 

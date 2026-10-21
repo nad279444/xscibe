@@ -56,7 +56,7 @@ async function ensurePipeline(
   modelKey: ModelKey,
   device: Device,
   requestId: number,
-): Promise<{ instance: AsrPipeline; device: Device }> {
+): Promise<{ instance: AsrPipeline; device: Device; fallbackReason?: string }> {
   if (transcriber && loadedKey === modelKey && loadedDevice === device) {
     return { instance: transcriber, device }
   }
@@ -96,6 +96,7 @@ async function ensurePipeline(
     return { instance, device }
   } catch (primaryError) {
     if (device !== 'webgpu') throw primaryError
+    const fallbackReason = primaryError instanceof Error ? primaryError.message : String(primaryError)
     actualDevice = 'wasm'
     const instance = (await pipeline('automatic-speech-recognition', info.repo, {
       ...options,
@@ -104,7 +105,7 @@ async function ensurePipeline(
     transcriber = instance
     loadedKey = modelKey
     loadedDevice = 'wasm'
-    return { instance, device: actualDevice }
+    return { instance, device: actualDevice, fallbackReason }
   }
 }
 
@@ -140,13 +141,13 @@ async function runTranscription(
   jobs.set(requestId, job)
 
   try {
-    const { instance, device } = await ensurePipeline(modelKey, requestedDevice, requestId)
+    const { instance, device, fallbackReason } = await ensurePipeline(modelKey, requestedDevice, requestId)
     if (job.interrupted) {
       post({ kind: 'ERROR', requestId, code: 'CANCELLED', message: 'Cancelled' })
       return
     }
 
-    post({ kind: 'READY', device, modelKey })
+    post({ kind: 'READY', device, modelKey, ...(fallbackReason && { fallbackReason }) })
     post({ kind: 'PROGRESS', requestId, progress: { phase: 'warmup' } })
 
     const completedChunks: string[] = []
@@ -227,8 +228,8 @@ scope.addEventListener('message', (event) => {
       const requestId = -1
       queue = queue.then(() =>
         ensurePipeline(message.modelKey, message.device, requestId)
-          .then(({ device }) => {
-            post({ kind: 'READY', device, modelKey: message.modelKey })
+          .then(({ device, fallbackReason }) => {
+            post({ kind: 'READY', device, modelKey: message.modelKey, ...(fallbackReason && { fallbackReason }) })
           })
           .catch((error: unknown) => {
             post({

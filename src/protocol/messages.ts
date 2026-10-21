@@ -21,7 +21,7 @@ export type AsrRequest =
   | { kind: 'DISPOSE' }
 
 export type AsrResponse =
-  | { kind: 'READY'; device: Device; modelKey: ModelKey }
+  | { kind: 'READY'; device: Device; modelKey: ModelKey; fallbackReason?: string }
   | { kind: 'PROGRESS'; requestId: number; progress: ModelProgress }
   | { kind: 'PARTIAL'; requestId: number; text: string }
   | { kind: 'FINAL'; requestId: number; transcript: Transcript }

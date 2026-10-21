@@ -77,7 +77,11 @@ export default function App() {
   function handleWorkerMessage(message: AsrResponse): void {
     switch (message.kind) {
       case 'READY':
-        dispatch({ type: 'WORKER_READY', device: message.device })
+        dispatch({
+          type: 'WORKER_READY',
+          device: message.device,
+          ...(message.fallbackReason && { fallbackReason: message.fallbackReason }),
+        })
         break
 
       case 'PROGRESS':
@@ -129,8 +133,10 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false
-    void detectDevice().then((device) => {
-      if (!cancelled) dispatch({ type: 'DEVICE_DETECTED', device })
+    void detectDevice().then(({ device, warning }) => {
+      if (!cancelled) {
+        dispatch({ type: 'DEVICE_DETECTED', device, ...(warning && { warning }) })
+      }
     })
     return () => {
       cancelled = true
@@ -418,6 +424,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#07111f] text-slate-100">
       <Header
         device={state.device}
+        deviceWarning={state.deviceWarning}
         canStartNew={state.phase.status !== 'idle'}
         onNew={handleReset}
       />

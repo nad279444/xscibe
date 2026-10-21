@@ -31,6 +31,11 @@ export type GuardFlag =
 
 export type Device = 'webgpu' | 'wasm'
 
+export interface DeviceDetection {
+  device: Device
+  warning?: string
+}
+
 export type ModelKey = 'tiny' | 'base' | 'small'
 
 export interface ModelInfo {
