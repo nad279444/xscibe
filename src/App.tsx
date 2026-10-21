@@ -415,14 +415,14 @@ export default function App() {
     state.phase.status === 'voiceConnecting'
 
   return (
-    <div className="min-h-screen flex flex-col text-slate-800">
+    <div className="min-h-screen flex flex-col bg-[#07111f] text-slate-100">
       <Header
         device={state.device}
         canStartNew={state.phase.status !== 'idle'}
         onNew={handleReset}
       />
       {renderBody()}
-      <footer className="p-4 text-center text-xs text-slate-400">
+      <footer className="border-t border-white/[0.06] p-4 text-center text-xs text-slate-500">
         XScribe — {inProgress ? 'working…' : 'speech to text, chat and voice entirely in your browser'}
       </footer>
     </div>

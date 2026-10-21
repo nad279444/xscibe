@@ -30,7 +30,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-gradient-to-r from-blue-50 to-transparent text-slate-700 text-sm sm:text-base">
+      <body className="bg-[#07111f] text-slate-100 text-sm sm:text-base">
         {children}
       </body>
     </html>

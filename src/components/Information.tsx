@@ -12,7 +12,7 @@ interface InformationProps {
 }
 
 export default function Information({ transcript, audioUrl, onVoiceStart }: InformationProps) {
-  const [tab, setTab] = useState<Tab>('transcript')
+  const [tab, setTab] = useState<Tab>('ask')
   const [hideFlagged, setHideFlagged] = useState(false)
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)

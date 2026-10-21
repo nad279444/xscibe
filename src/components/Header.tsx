@@ -8,15 +8,15 @@ interface HeaderProps {
 
 export default function Header({ device, canStartNew, onNew }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between gap-4 p-4">
+    <header className="flex items-center justify-between gap-4 border-b border-white/[0.08] bg-[#07111f]/90 px-5 py-4 sm:px-8">
       <button
         type="button"
         onClick={onNew}
         className="flex items-center gap-2 text-left"
         title="Back to start"
       >
-        <h1 className="font-medium">
-          X<span className="text-blue-400 bold">Scribe</span>
+        <h1 className="font-medium tracking-wide text-slate-100">
+          X<span className="text-cyan-300 bold">Scribe</span>
         </h1>
       </button>
       <div className="gap-3 flex items-center">
@@ -25,8 +25,8 @@ export default function Header({ device, canStartNew, onNew }: HeaderProps) {
             className={
               'text-xs px-2 py-1 rounded-full border ' +
               (device === 'webgpu'
-                ? 'border-blue-300 text-blue-500 bg-blue-50'
-                : 'border-slate-300 text-slate-500 bg-white')
+                ? 'border-cyan-300/30 text-cyan-200 bg-cyan-300/[0.08]'
+                : 'border-white/10 text-slate-400 bg-white/[0.04]')
             }
             title={
               device === 'webgpu'
@@ -41,7 +41,7 @@ export default function Header({ device, canStartNew, onNew }: HeaderProps) {
           <button
             type="button"
             onClick={onNew}
-            className="flex items-center gap-2 specialBtn px-3 py-2 rounded-lg text-blue-400"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-cyan-200 transition hover:border-cyan-300/40"
           >
             <p>New</p>
             <i className="fa-solid fa-plus"></i>
