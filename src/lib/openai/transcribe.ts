@@ -1,4 +1,5 @@
 import type { Transcript } from '@/app/types'
+import { MAX_TRANSCRIPTION_UPLOAD_BYTES } from '@/lib/audio/uploadLimits'
 
 export async function transcribeAudio(
   blob: Blob,
@@ -6,13 +7,41 @@ export async function transcribeAudio(
   signal?: AbortSignal,
   durationSeconds?: number,
 ): Promise<Transcript> {
-  const form = new FormData()
-  form.append('file', blob, filename)
-  if (durationSeconds !== undefined && Number.isFinite(durationSeconds)) {
-    form.append('durationSeconds', String(durationSeconds))
+  if (blob.size > MAX_TRANSCRIPTION_UPLOAD_BYTES) {
+    throw new Error('Audio must be 20 MB or smaller')
   }
 
-  const response = await fetch('/api/transcribe', { method: 'POST', body: form, signal })
+  const safeName = filename.replace(/[^\w.-]+/g, '_').slice(-120) || 'audio.webm'
+  const contentType = blob.type || 'application/octet-stream'
+  const ticketResponse = await fetch('/api/transcribe/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: safeName, contentType, size: blob.size }),
+    signal,
+  })
+  const ticket = (await ticketResponse.json().catch(() => ({}))) as {
+    error?: string
+    uploadUrl?: string
+    objectName?: string
+  }
+  if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.objectName) {
+    throw new Error(ticket.error ?? `Could not prepare upload (${ticketResponse.status})`)
+  }
+
+  const uploadResponse = await fetch(ticket.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: blob,
+    signal,
+  })
+  if (!uploadResponse.ok) throw new Error(`Audio upload failed (${uploadResponse.status})`)
+
+  const response = await fetch('/api/transcribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ objectName: ticket.objectName, filename: safeName, durationSeconds }),
+    signal,
+  })
   const payload = (await response.json().catch(() => ({}))) as {
     error?: string
     transcript?: Transcript

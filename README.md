@@ -10,7 +10,7 @@ a streaming LLM, or have a real-time voice conversation about it.
 
 | Area | What it does |
 | --- | --- |
-| File transcription | OpenAI GPT-Transcribe runs behind a server-side Next.js route. Uploads are limited to 4 MB on Vercel. |
+| File transcription | OpenAI GPT-Transcribe runs behind a server-side Next.js route. Audio up to 20 MB uploads directly to a private Google Cloud Storage bucket. |
 | Word seek positions | GPT-Transcribe does not return word timestamps; XScribe estimates positions across the audio duration. Click a word to seek approximately. |
 | Live transcription | Microphone audio streams through an AudioWorklet to OpenAI Realtime using an ephemeral session token. |
 | Hallucination guard | Segments are scored for common ASR artifacts ("Thank you for watching…"), n-gram loops, impossible speech rates and dead air. Flagged segments are visibly marked and can be hidden or stripped on export. |
@@ -36,7 +36,7 @@ src/
 ```
 
 - **File uploads** use `gpt-transcribe` via `/api/transcribe`; the route keeps `OPENAI_API_KEY` server-side. GPT-Transcribe returns text but not word timestamps, so the UI estimates word positions across the audio duration ([OpenAI transcription guide](https://developers.openai.com/api/docs/guides/transcription)).
-- **Upload size** is capped at 4 MB so multipart requests fit Vercel Functions' 4.5 MB body limit. OpenAI accepts larger files, but routing them through a Vercel Function exceeds Vercel's payload limit ([Vercel function limits](https://vercel.com/docs/functions/limitations)).
+- **Large uploads** use a short-lived GCS signed URL: the browser uploads directly to a private bucket, then the server validates, transcribes, and deletes the object. This bypasses Vercel's 4.5 MB Function payload limit; files are capped at 20 MB ([Vercel function limits](https://vercel.com/docs/functions/limitations), [GCS signed URLs](https://cloud.google.com/storage/docs/access-control/signed-urls)).
 - **Live transcription** streams 24 kHz PCM over a persistent browser WebSocket. A Next.js route mints a short-lived Realtime client secret; the permanent API key remains server-side. An AudioWorklet performs lightweight energy-based turn detection and commits audio turns.
 - **Model/VAD compatibility:** `gpt-live-transcribe` does not support server VAD and requires the client to commit each turn. XScribe keeps this low-cost detection in the AudioWorklet rather than loading an ONNX model or running MicVAD on the main thread. See the [Realtime transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription).
 - **Rate limiting** for API routes is a per-instance token bucket
@@ -56,8 +56,12 @@ npm run build      # typecheck + production build
 Transcription, live mode, transcript chat, and voice all require an OpenAI API key:
 
 ```bash
-# .env.local (never commit; the API key is only read by server routes)
+# .env.local (never commit; credentials are only read by server routes)
 OPENAI_API_KEY=sk-...
+GCS_BUCKET_NAME=your-private-audio-bucket
+GCS_PROJECT_ID=your-gcp-project-id
+CLIENT_EMAIL=your-service-account@your-gcp-project-id.iam.gserviceaccount.com
+PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 # optional overrides
 CHAT_MODEL=gpt-6-luna
 LIVE_MODEL=gpt-live-1
@@ -72,8 +76,7 @@ The API key is only read server-side in `src/app/api/` and is never shipped to t
 vercel
 ```
 
-Set `OPENAI_API_KEY` (and optionally the chat/voice model overrides) in the project's Environment
-Variables. File transcription uses `gpt-transcribe`; live transcription uses the Realtime API.
+Set `OPENAI_API_KEY`, `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, `CLIENT_EMAIL`, and `PRIVATE_KEY` in the project's Environment Variables (Production, Preview, and Development as needed). The service account needs permission to sign URLs and create, read, and delete objects in the bucket. Configure bucket CORS to allow `PUT` from your app's deployed origin (and `http://localhost:3000` for local development), with the `Content-Type` request header. File transcription uses `gpt-transcribe`; live transcription uses the Realtime API.
 
 Keep the OpenAI spend cap low (≈ $3) — voice sessions bill per second while connected.
 

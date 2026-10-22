@@ -1,5 +1,6 @@
 import type { Segment, Transcript, Word } from '@/app/types'
 import { analyzeTranscript } from '@/lib/asr/guard'
+import { audioBucket } from '@/lib/server/gcs'
 import { clientIp, jsonError, rateLimit } from '@/lib/server/rateLimit'
 
 export const dynamic = 'force-dynamic'
@@ -102,20 +103,57 @@ export async function POST(request: Request): Promise<Response> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return jsonError(503, 'Server is missing OPENAI_API_KEY')
 
-  let form: FormData
-  try {
-    form = await request.formData()
-  } catch {
-    return jsonError(400, 'Expected multipart audio upload')
+  let file: File
+  let formDuration: FormDataEntryValue | undefined
+  let isGcsUpload = false
+  const contentType = request.headers.get('content-type') ?? ''
+  if (contentType.includes('application/json')) {
+    isGcsUpload = true
+    let body: { objectName?: unknown; filename?: unknown; durationSeconds?: unknown }
+    try {
+      body = (await request.json()) as typeof body
+    } catch {
+      return jsonError(400, 'Invalid transcription request')
+    }
+    if (typeof body.objectName !== 'string' || !/^audio-uploads\/[0-9a-f-]{36}\/[\w.-]{1,120}$/i.test(body.objectName)) {
+      return jsonError(400, 'Invalid audio object')
+    }
+    try {
+      const object = audioBucket().file(body.objectName)
+      const [metadata] = await object.getMetadata()
+      const size = Number(metadata.size)
+      if (!Number.isFinite(size) || size < 1) return jsonError(400, 'Audio file is empty')
+      if (size > 20 * 1024 * 1024) {
+        await object.delete({ ignoreNotFound: true }).catch(() => undefined)
+        return jsonError(413, 'Audio must be 20 MB or smaller')
+      }
+      const [audio] = await object.download()
+      const audioBytes = new Uint8Array(audio.byteLength)
+      audioBytes.set(audio)
+      file = new File([audioBytes.buffer], typeof body.filename === 'string' ? body.filename : 'audio', {
+        type: metadata.contentType || 'application/octet-stream',
+      })
+      await object.delete({ ignoreNotFound: true }).catch(() => undefined)
+    } catch {
+      return jsonError(400, 'Could not retrieve the uploaded audio from GCS')
+    }
+    formDuration = typeof body.durationSeconds === 'number' ? String(body.durationSeconds) : undefined
+  } else {
+    let form: FormData
+    try {
+      form = await request.formData()
+    } catch {
+      return jsonError(400, 'Expected multipart audio upload')
+    }
+    const uploadedFile = form.get('file')
+    if (!(uploadedFile instanceof File)) return jsonError(400, 'Audio file is required')
+    file = uploadedFile
+    formDuration = form.get('durationSeconds') ?? undefined
   }
-
-  const file = form.get('file')
-  if (!(file instanceof File)) return jsonError(400, 'Audio file is required')
   if (file.size === 0) return jsonError(400, 'Audio file is empty')
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return jsonError(413, 'Audio must be 4 MB or smaller for serverless uploads')
+  if (file.size > (isGcsUpload ? 20 * 1024 * 1024 : MAX_UPLOAD_BYTES)) {
+    return jsonError(413, isGcsUpload ? 'Audio must be 20 MB or smaller' : 'Audio must be 4 MB or smaller when sent directly to the transcription route')
   }
-  const formDuration = form.get('durationSeconds')
   const fallbackDuration = typeof formDuration === 'string' ? toNumber(Number(formDuration)) : 0
 
   const upstreamForm = new FormData()
