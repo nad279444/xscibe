@@ -12,8 +12,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.3.1",
-    "@ricky0123/vad-web": "^0.0.31",
     "next": "^15.5.28",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

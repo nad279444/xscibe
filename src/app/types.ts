@@ -3,6 +3,7 @@ export interface Word {
   start: number
   end: number
   confidence?: number
+  approximate?: boolean
 }
 
 export interface Segment {
@@ -28,31 +29,6 @@ export type GuardFlag =
   | 'known-hallucination'
   | 'empty'
   | 'low-confidence'
-
-export type Device = 'webgpu' | 'wasm'
-
-export interface DeviceDetection {
-  device: Device
-  warning?: string
-}
-
-export type ModelKey = 'tiny' | 'base' | 'small'
-
-export interface ModelInfo {
-  key: ModelKey
-  label: string
-  repo: string
-  params: string
-  realtimeCapable: boolean
-}
-
-export interface ModelProgress {
-  phase: 'download' | 'load' | 'warmup'
-  file?: string
-  progress?: number
-  loaded?: number
-  total?: number
-}
 
 export type AudioSource =
   | { kind: 'file'; file: File; name: string }

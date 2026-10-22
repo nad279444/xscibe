@@ -185,7 +185,11 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
                             : 'hover:bg-blue-50') +
                           (segment.flagged && hideFlagged ? ' line-through' : '')
                         }
-                        title={formatTimestamp(word.start)}
+                        title={
+                          word.approximate
+                            ? `Approximate seek position: ${formatTimestamp(word.start)}`
+                            : formatTimestamp(word.start)
+                        }
                       >
                         {word.text}
                       </span>

@@ -102,7 +102,7 @@ export default function HomePage({
               </span>
               <span>
                 <span className="block font-semibold text-white">Transcribe a file</span>
-                <span className="mt-1 block text-xs text-slate-400">Audio stays on this device</span>
+                <span className="mt-1 block text-xs text-slate-400">OpenAI GPT-Transcribe · up to 4 MB</span>
               </span>
               <input
                 onChange={(event) => {
@@ -112,7 +112,7 @@ export default function HomePage({
                 }}
                 className="sr-only"
                 type="file"
-                accept=".mp3,.wav,.m4a,.webm,.ogg,.flac,audio/*"
+                accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm,.ogg,.flac,audio/*"
               />
             </label>
 
@@ -138,17 +138,21 @@ export default function HomePage({
             type="button"
             onClick={onStartLive}
             className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-left transition hover:border-cyan-300/40"
-            title="Transcribe your microphone live, phrase by phrase"
+            title="Live audio is streamed securely to OpenAI Realtime"
           >
             <i className="fa-solid fa-wave-square text-cyan-300" />
             <span className="text-sm font-medium text-slate-200">Start live transcription</span>
             <span className="ml-auto font-mono text-[10px] uppercase tracking-widest text-slate-500">Live mode</span>
           </button>
+          <p className="text-xs leading-relaxed text-slate-500">
+            Audio files and live speech segments are sent to OpenAI for transcription. Do not upload
+            recordings unless you have permission to share them.
+          </p>
 
           <div className="grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-3">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-300">01 / Decode</p>
-              <p className="mt-1 text-xs text-slate-400">Word-timed transcripts</p>
+              <p className="mt-1 text-xs text-slate-400">Searchable transcripts with seek links</p>
             </div>
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-300">02 / Ask</p>
@@ -181,7 +185,7 @@ export default function HomePage({
                 <span className="text-cyan-300">3 / 3 active</span>
               </div>
               {[
-                ['LOCAL TRANSCRIPTION', 'Ready'],
+                ['WHISPER TRANSCRIPTION', 'Cloud powered'],
                 ['TRANSCRIPT CHAT', 'Context aware'],
                 ['VOICE LINK', 'On demand'],
               ].map(([name, status]) => (

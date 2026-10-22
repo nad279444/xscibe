@@ -48,62 +48,34 @@ describe('file transcription flow', () => {
     expect(next.phase).toEqual({ status: 'idle' })
   })
 
-  it('moves decoding → loadingModel → transcribing on progress', () => {
+  it('moves decoding to transcribing when upload starts', () => {
     let state = reducer(ready(), { type: 'SUBMIT_FILE' })
-    state = reducer(state, {
-      type: 'WORKER_PROGRESS',
-      progress: { phase: 'download', progress: 42 },
-    })
-    expect(state.phase).toEqual({ status: 'loadingModel' })
     state = reducer(state, { type: 'TRANSCRIBE_STARTED' })
-    state = reducer(state, {
-      type: 'WORKER_PROGRESS',
-      progress: { phase: 'warmup' },
-    })
     expect(state.phase).toEqual({ status: 'transcribing' })
   })
 
-  it('stores partial text only while transcribing', () => {
-    let state = reducer(ready(), { type: 'SUBMIT_FILE' })
-    state = reducer(state, { type: 'WORKER_PARTIAL', text: 'ignored' })
-    expect(state.partialText).toBe('')
-    state = reducer(state, { type: 'TRANSCRIBE_STARTED' })
-    state = reducer(state, { type: 'WORKER_PARTIAL', text: 'Hello' })
-    expect(state.partialText).toBe('Hello')
-  })
-
-  it('completes on WORKER_FINAL and clears transient state', () => {
+  it('completes on TRANSCRIPTION_FINAL', () => {
     let state = reducer(ready(), { type: 'SUBMIT_FILE' })
     state = reducer(state, { type: 'TRANSCRIBE_STARTED' })
-    state = reducer(state, { type: 'WORKER_PARTIAL', text: 'partial' })
-    state = reducer(state, { type: 'WORKER_FINAL', transcript: transcript() })
+    state = reducer(state, { type: 'TRANSCRIPTION_FINAL', transcript: transcript() })
     expect(state.phase).toEqual({ status: 'done' })
     expect(state.transcript?.segments).toHaveLength(1)
     expect(state.partialText).toBe('')
-    expect(state.progress).toBeNull()
   })
 
-  it('surfaces worker errors', () => {
+  it('surfaces transcription errors', () => {
     let state = reducer(ready(), { type: 'SUBMIT_FILE' })
-    state = reducer(state, { type: 'WORKER_ERROR', message: 'boom' })
+    state = reducer(state, { type: 'TRANSCRIPTION_ERROR', message: 'boom' })
     expect(state.phase).toEqual({ status: 'error' })
     expect(state.error).toBe('boom')
   })
 })
 
-describe('reset and model selection', () => {
-  it('RESET returns to idle but keeps the model choice', () => {
-    let state = reducer(initialState, { type: 'SET_MODEL', modelKey: 'tiny' })
-    state = reducer(state, { type: 'SELECT_SOURCE', source: source() })
-    state = reducer(state, { type: 'RESET' })
+describe('reset', () => {
+  it('returns to the initial state', () => {
+    const state = reducer(ready(), { type: 'RESET' })
     expect(state.phase).toEqual({ status: 'idle' })
-    expect(state.modelKey).toBe('tiny')
     expect(state.source).toBeNull()
-  })
-
-  it('records the detected device', () => {
-    const state = reducer(initialState, { type: 'DEVICE_DETECTED', device: 'webgpu' })
-    expect(state.device).toBe('webgpu')
   })
 })
 

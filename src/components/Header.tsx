@@ -1,13 +1,9 @@
-import type { Device } from '../app/types'
-
 interface HeaderProps {
-  device: Device | null
-  deviceWarning: string | null
   canStartNew: boolean
   onNew: () => void
 }
 
-export default function Header({ device, deviceWarning, canStartNew, onNew }: HeaderProps) {
+export default function Header({ canStartNew, onNew }: HeaderProps) {
   return (
     <header className="flex items-center justify-between gap-4 border-b border-white/[0.08] bg-[#07111f]/90 px-5 py-4 sm:px-8">
       <button
@@ -21,24 +17,6 @@ export default function Header({ device, deviceWarning, canStartNew, onNew }: He
         </h1>
       </button>
       <div className="flex flex-wrap items-center justify-end gap-3">
-        {device && (
-          <span
-            className={
-              'text-xs px-2 py-1 rounded-full border ' +
-              (device === 'webgpu'
-                ? 'border-cyan-300/30 text-cyan-200 bg-cyan-300/[0.08]'
-                : 'border-white/10 text-slate-400 bg-white/[0.04]')
-            }
-            title={deviceWarning ?? (device === 'webgpu' ? 'WebGPU adapter detected; model initialization will confirm GPU support.' : 'Running models on WebAssembly.')}
-          >
-            {device === 'webgpu' ? 'WebGPU' : deviceWarning ? 'WASM · GPU unavailable' : 'WASM'}
-          </span>
-        )}
-        {deviceWarning && (
-          <span className="max-w-[min(55vw,420px)] text-right text-[10px] leading-4 text-amber-200/80" title={deviceWarning}>
-            {deviceWarning}
-          </span>
-        )}
         {canStartNew && (
           <button
             type="button"

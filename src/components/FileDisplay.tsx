@@ -1,21 +1,14 @@
 import { useEffect, useRef } from 'react'
-import type { AudioSource, Device, ModelKey } from '../app/types'
-import { MODELS, MODEL_KEYS } from '../lib/asr/registry'
+import type { AudioSource } from '../app/types'
 
 interface FileDisplayProps {
   source: AudioSource
-  modelKey: ModelKey
-  device: Device | null
-  onModelChange: (modelKey: ModelKey) => void
-  onSubmit: () => void
+  onSubmit: (durationSeconds?: number) => void
   onReset: () => void
 }
 
 export default function FileDisplay({
   source,
-  modelKey,
-  device,
-  onModelChange,
   onSubmit,
   onReset,
 }: FileDisplayProps) {
@@ -47,31 +40,9 @@ export default function FileDisplay({
           Your browser does not support the audio element.
         </audio>
       </div>
-      <div className="flex flex-col text-left gap-1 mb-2">
-        <label htmlFor="model-select" className="text-xs sm:text-sm font-medium text-slate-500">
-          Model
-        </label>
-        <div className="flex items-center gap-3">
-          <select
-            id="model-select"
-            value={modelKey}
-            onChange={(event) => onModelChange(event.target.value as ModelKey)}
-            className="flex-1 bg-white duration-200 p-2 rounded outline-none focus:outline-none"
-          >
-            {MODEL_KEYS.map((key) => (
-              <option key={key} value={key}>
-                {MODELS[key].label}
-                {key !== 'small' ? ' — faster' : ''}
-              </option>
-            ))}
-          </select>
-          {device && (
-            <span className="text-xs text-slate-400 whitespace-nowrap">
-              {device === 'webgpu' ? 'GPU acceleration on' : 'WASM fallback'}
-            </span>
-          )}
-        </div>
-      </div>
+      <p className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] p-3 text-left text-xs leading-relaxed text-slate-400">
+        Audio is sent to OpenAI GPT-Transcribe. Files must be 4 MB or smaller; word seek positions are estimated.
+      </p>
       <div className="flex items-center justify-between gap-4">
         <button
           type="button"
@@ -82,7 +53,7 @@ export default function FileDisplay({
         </button>
         <button
           type="button"
-          onClick={onSubmit}
+          onClick={() => onSubmit(audioRef.current?.duration)}
           className="specialBtn px-3 p-2 rounded-lg text-blue-400 flex items-center gap-2 font-medium"
         >
           <p>Transcribe</p>

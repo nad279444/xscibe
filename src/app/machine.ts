@@ -1,8 +1,5 @@
 import type {
   AudioSource,
-  Device,
-  ModelKey,
-  ModelProgress,
   Segment,
   Transcript,
   VoiceCaption,
@@ -13,7 +10,6 @@ export type AppPhase =
   | { status: 'idle' }
   | { status: 'ready' }
   | { status: 'decoding' }
-  | { status: 'loadingModel' }
   | { status: 'transcribing' }
   | { status: 'done' }
   | { status: 'liveLoading' }
@@ -27,12 +23,8 @@ export type AppPhase =
 export interface AppState {
   phase: AppPhase
   source: AudioSource | null
-  modelKey: ModelKey
-  device: Device | null
-  deviceWarning: string | null
   transcript: Transcript | null
   partialText: string
-  progress: ModelProgress | null
   error: string | null
   liveSegments: Segment[]
   voiceStatus: VoiceStatus
@@ -43,12 +35,8 @@ export interface AppState {
 export const initialState: AppState = {
   phase: { status: 'idle' },
   source: null,
-  modelKey: 'small',
-  device: null,
-  deviceWarning: null,
   transcript: null,
   partialText: '',
-  progress: null,
   error: null,
   liveSegments: [],
   voiceStatus: 'idle',
@@ -59,15 +47,10 @@ export const initialState: AppState = {
 export type AppEvent =
   | { type: 'SELECT_SOURCE'; source: AudioSource }
   | { type: 'RESET' }
-  | { type: 'SET_MODEL'; modelKey: ModelKey }
-  | { type: 'DEVICE_DETECTED'; device: Device; warning?: string }
-  | { type: 'WORKER_READY'; device: Device; fallbackReason?: string }
   | { type: 'SUBMIT_FILE' }
   | { type: 'TRANSCRIBE_STARTED' }
-  | { type: 'WORKER_PROGRESS'; progress: ModelProgress }
-  | { type: 'WORKER_PARTIAL'; text: string }
-  | { type: 'WORKER_FINAL'; transcript: Transcript }
-  | { type: 'WORKER_ERROR'; message: string }
+  | { type: 'TRANSCRIPTION_FINAL'; transcript: Transcript }
+  | { type: 'TRANSCRIPTION_ERROR'; message: string }
   | { type: 'START_LIVE' }
   | { type: 'LIVE_READY' }
   | { type: 'LIVE_LISTENING' }
@@ -91,28 +74,12 @@ export function reducer(state: AppState, event: AppEvent): AppState {
     case 'SELECT_SOURCE':
       return {
         ...initialState,
-        modelKey: state.modelKey,
-        device: state.device,
-        deviceWarning: state.deviceWarning,
         source: event.source,
         phase: { status: 'ready' },
       }
 
     case 'RESET':
-      return { ...initialState, modelKey: state.modelKey }
-
-    case 'SET_MODEL':
-      return { ...state, modelKey: event.modelKey }
-
-    case 'DEVICE_DETECTED':
-      return { ...state, device: event.device, deviceWarning: event.warning ?? null }
-
-    case 'WORKER_READY':
-      return {
-        ...state,
-        device: event.device,
-        deviceWarning: event.fallbackReason ?? state.deviceWarning,
-      }
+      return initialState
 
     case 'SUBMIT_FILE':
       if (!state.source || state.phase.status !== 'ready') return state
@@ -121,7 +88,6 @@ export function reducer(state: AppState, event: AppEvent): AppState {
     case 'TRANSCRIBE_STARTED': {
       if (
         state.phase.status === 'decoding' ||
-        state.phase.status === 'loadingModel' ||
         state.phase.status === 'transcribing'
       ) {
         return { ...state, phase: { status: 'transcribing' } }
@@ -129,47 +95,22 @@ export function reducer(state: AppState, event: AppEvent): AppState {
       return state
     }
 
-    case 'WORKER_PROGRESS': {
-      if (
-        state.phase.status === 'decoding' ||
-        state.phase.status === 'loadingModel' ||
-        state.phase.status === 'transcribing'
-      ) {
-        const phase =
-          event.progress.phase === 'warmup'
-            ? { status: 'transcribing' as const }
-            : { status: 'loadingModel' as const }
-        return { ...state, progress: event.progress, phase }
-      }
-      if (event.progress.phase === 'download' || event.progress.phase === 'load') {
-        return { ...state, progress: event.progress }
-      }
-      return state
-    }
-
-    case 'WORKER_PARTIAL': {
-      if (state.phase.status !== 'transcribing') return state
-      return { ...state, partialText: event.text }
-    }
-
-    case 'WORKER_FINAL':
+    case 'TRANSCRIPTION_FINAL':
       if (state.phase.status !== 'transcribing') return state
       return {
         ...state,
         phase: { status: 'done' },
         transcript: event.transcript,
         partialText: '',
-        progress: null,
       }
 
-    case 'WORKER_ERROR':
+    case 'TRANSCRIPTION_ERROR':
     case 'LIVE_ERROR':
       return {
         ...state,
         phase: { status: 'error' },
         error: event.message,
         partialText: '',
-        progress: null,
       }
 
     case 'START_LIVE':
@@ -184,7 +125,7 @@ export function reducer(state: AppState, event: AppEvent): AppState {
 
     case 'LIVE_READY':
       if (state.phase.status !== 'liveLoading') return state
-      return { ...state, phase: { status: 'listening' }, device: state.device }
+      return { ...state, phase: { status: 'listening' } }
 
     case 'LIVE_LISTENING':
       if (state.phase.status !== 'listening' && state.phase.status !== 'liveProcessing') return state

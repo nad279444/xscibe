@@ -4,7 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'XScribe',
   description:
-    'Speech to text, chat and voice entirely in your browser. Transcribe recordings, export captions, ask questions and talk it through.',
+    'Cloud-powered audio transcription, transcript chat, caption exports, and voice conversations.',
   icons: { icon: '/icon.svg' },
 }
 
