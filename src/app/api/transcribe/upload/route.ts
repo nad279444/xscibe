@@ -46,7 +46,11 @@ export async function POST(request: Request): Promise<Response> {
       contentType: body.contentType,
     })
     return Response.json({ uploadUrl, objectName })
-  } catch {
+  } catch (error) {
+    console.error('[gcs] Could not create signed upload URL', {
+      name: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+    })
     return jsonError(503, 'Could not create a GCS upload URL. Check server credentials and bucket permissions.')
   }
 }
