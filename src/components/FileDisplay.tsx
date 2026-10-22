@@ -41,7 +41,7 @@ export default function FileDisplay({
         </audio>
       </div>
       <p className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] p-3 text-left text-xs leading-relaxed text-slate-400">
-        Audio is sent to OpenAI GPT-Transcribe. Files must be 4 MB or smaller; word seek positions are estimated.
+        Audio is sent to our transcription service. Files must be 4 MB or smaller; word seek positions are estimated.
       </p>
       <div className="flex items-center justify-between gap-4">
         <button

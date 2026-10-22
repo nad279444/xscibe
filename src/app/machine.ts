@@ -133,7 +133,11 @@ export function reducer(state: AppState, event: AppEvent): AppState {
 
     case 'LIVE_PARTIAL':
       if (state.phase.status !== 'listening' && state.phase.status !== 'liveProcessing') return state
-      return { ...state, phase: { status: 'liveProcessing' }, partialText: event.text }
+      return {
+        ...state,
+        phase: event.text ? { status: 'liveProcessing' } : { status: 'listening' },
+        partialText: event.text,
+      }
 
     case 'LIVE_SEGMENT': {
       if (

@@ -78,31 +78,31 @@ export default function HomePage({
   }, [])
 
   return (
-    <main className="relative isolate flex-1 overflow-hidden px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
+    <main className="relative isolate flex-1 overflow-hidden px-5 py-10 text-slate-800 sm:px-8 sm:py-14">
       <div className="pointer-events-none absolute inset-0 -z-10 robot-grid opacity-40" />
       <div className="mx-auto grid min-h-[min(720px,calc(100vh-150px))] max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-200">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_12px_#67e8f9]" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-blue-700">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500 shadow-[0_0_12px_#60a5fa]" />
             Audio intelligence online
           </div>
           <div className="space-y-4">
             <h1 className="max-w-2xl text-5xl font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-              Meet your <span className="text-cyan-300">audio</span> co-pilot.
+              Meet your <span className="text-blue-600">audio</span> co-pilot.
             </h1>
-            <p className="max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
+            <p className="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
               Turn recordings into searchable transcripts, clear answers, and natural voice conversations.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-cyan-300/30 bg-cyan-300/[0.09] p-5 transition hover:border-cyan-200/70 hover:bg-cyan-300/[0.14]">
+            <label className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-sky-200 bg-white/75 p-5 shadow-sm transition hover:border-blue-300 hover:bg-white">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(103,232,249,0.18)]">
                 <i className="fa-solid fa-file-arrow-up text-lg" />
               </span>
               <span>
-                <span className="block font-semibold text-white">Transcribe a file</span>
-                <span className="mt-1 block text-xs text-slate-400">OpenAI GPT-Transcribe · up to 4 MB</span>
+                <span className="block font-semibold text-slate-900">Transcribe a file</span>
+                <span className="mt-1 block text-xs text-slate-600">Cloud transcription · up to 4 MB</span>
               </span>
               <input
                 onChange={(event) => {
@@ -119,16 +119,16 @@ export default function HomePage({
             <button
               type="button"
               onClick={recordingStatus === 'recording' ? stopRecording : startRecording}
-              className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:border-rose-300/40 hover:bg-rose-300/[0.06]"
+              className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white/75 p-5 text-left shadow-sm transition hover:border-rose-300 hover:bg-white"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-white/10 bg-slate-900 text-rose-300">
                 <i className={'fa-solid ' + (recordingStatus === 'recording' ? 'fa-stop' : 'fa-microphone')} />
               </span>
               <span>
-                <span className="block font-semibold text-white">
+                <span className="block font-semibold text-slate-900">
                   {recordingStatus === 'recording' ? `Recording · ${duration}s` : 'Record audio'}
                 </span>
-                <span className="mt-1 block text-xs text-slate-400">Capture from your microphone</span>
+                <span className="mt-1 block text-xs text-slate-600">Capture from your microphone</span>
               </span>
             </button>
           </div>
@@ -137,30 +137,29 @@ export default function HomePage({
           <button
             type="button"
             onClick={onStartLive}
-            className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-left transition hover:border-cyan-300/40"
-            title="Live audio is streamed securely to OpenAI Realtime"
+            className="flex w-full items-center gap-3 rounded-xl border border-sky-200 bg-white/75 px-4 py-3 text-left shadow-sm transition hover:border-blue-300 hover:bg-white"
           >
             <i className="fa-solid fa-wave-square text-cyan-300" />
-            <span className="text-sm font-medium text-slate-200">Start live transcription</span>
+            <span className="text-sm font-medium text-slate-800">Start live transcription</span>
             <span className="ml-auto font-mono text-[10px] uppercase tracking-widest text-slate-500">Live mode</span>
           </button>
-          <p className="text-xs leading-relaxed text-slate-500">
-            Audio files and live speech segments are sent to OpenAI for transcription. Do not upload
+          <p className="text-xs leading-relaxed text-slate-600">
+            Audio files and live speech are sent to our transcription service. Do not upload
             recordings unless you have permission to share them.
           </p>
 
-          <div className="grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-3">
+          <div className="grid gap-3 border-t border-sky-200 pt-6 sm:grid-cols-3">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-300">01 / Decode</p>
-              <p className="mt-1 text-xs text-slate-400">Searchable transcripts with seek links</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600">01 / Decode</p>
+              <p className="mt-1 text-xs text-slate-600">Searchable transcripts with seek links</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-300">02 / Ask</p>
-              <p className="mt-1 text-xs text-slate-400">Chat with your recording</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600">02 / Ask</p>
+              <p className="mt-1 text-xs text-slate-600">Chat with your recording</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-300">03 / Speak</p>
-              <p className="mt-1 text-xs text-slate-400">Continue by voice</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600">03 / Speak</p>
+              <p className="mt-1 text-xs text-slate-600">Continue by voice</p>
             </div>
           </div>
         </section>
@@ -185,7 +184,7 @@ export default function HomePage({
                 <span className="text-cyan-300">3 / 3 active</span>
               </div>
               {[
-                ['WHISPER TRANSCRIPTION', 'Cloud powered'],
+                ['AUDIO TRANSCRIPTION', 'Cloud powered'],
                 ['TRANSCRIPT CHAT', 'Context aware'],
                 ['VOICE LINK', 'On demand'],
               ].map(([name, status]) => (

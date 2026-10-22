@@ -243,13 +243,13 @@ export default function App() {
         )
 
       case 'decoding':
-        return <Transcribing label="Preparing audio" detail="Preparing your upload for OpenAI" />
+        return <Transcribing label="Preparing audio" detail="Preparing your audio" />
 
       case 'transcribing':
         return (
           <Transcribing
-            label="Transcribing with GPT-Transcribe"
-            detail="Sending audio securely to OpenAI"
+            label="Transcribing your audio"
+            detail="Sending audio securely for transcription"
           />
         )
 
@@ -330,10 +330,10 @@ export default function App() {
     state.phase.status === 'voiceConnecting'
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07111f] text-slate-100">
+    <div className="cloudy-sky min-h-screen flex flex-col text-slate-800">
       <Header canStartNew={state.phase.status !== 'idle'} onNew={handleReset} />
       {renderBody()}
-      <footer className="border-t border-white/[0.06] p-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-sky-200/70 p-4 text-center text-xs text-slate-500">
         XScribe — {inProgress ? 'working…' : 'cloud transcription, transcript chat and voice'}
       </footer>
     </div>

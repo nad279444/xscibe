@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { Segment } from '../app/types'
 import { formatTimestamp } from '../lib/export/captions'
 
@@ -16,11 +17,17 @@ export default function LiveView({
   stopping = false,
   onStop,
 }: LiveViewProps) {
+  const transcriptRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'auto' })
+  }, [segments, partialText])
+
   return (
-    <main className="flex-1 p-4 flex flex-col gap-4 text-center pb-20 w-full max-w-prose mx-auto">
+    <main className="flex-1 min-h-0 p-4 flex flex-col gap-4 text-center pb-20 w-full max-w-2xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-semibold text-4xl sm:text-5xl">
-          <span className="text-blue-400 bold">Listening…</span>
+          <span className="text-blue-700 bold">Listening…</span>
         </h1>
         <span
           className={
@@ -30,22 +37,22 @@ export default function LiveView({
           title={processing ? 'Processing speech' : 'Listening for speech'}
         ></span>
       </div>
-      <div className="text-left flex-1 overflow-y-auto rounded-xl border border-slate-200 p-4 space-y-3 bg-white min-h-48">
+      <div ref={transcriptRef} className="text-left flex-1 min-h-64 overflow-y-auto rounded-2xl border border-sky-200 bg-white/85 p-5 shadow-sm space-y-5">
         {segments.length === 0 && !partialText && (
-          <p className="text-slate-400 italic">
+          <p className="text-slate-500 italic">
             Speak naturally — phrases appear here as soon as you pause.
           </p>
         )}
         {segments.map((segment) => (
-          <div key={segment.id} className="flex gap-3 text-sm">
-            <span className="text-slate-400 font-mono whitespace-nowrap">
+          <div key={segment.id} className="flex flex-col gap-1.5 text-left text-base leading-7 text-slate-900">
+            <span className="text-xs text-slate-500 font-mono">
               [{formatTimestamp(segment.start)}]
             </span>
-            <span>{segment.text}</span>
+            <p className="whitespace-pre-wrap break-words">{segment.text}</p>
           </div>
         ))}
         {partialText && (
-          <p className="text-slate-500 italic text-sm">{partialText}</p>
+          <p className="border-l-2 border-blue-400 pl-3 text-base leading-7 text-blue-800 whitespace-pre-wrap break-words" aria-live="polite">{partialText}</p>
         )}
       </div>
       <div className="flex justify-end">
@@ -55,7 +62,7 @@ export default function LiveView({
           <button
             type="button"
             onClick={onStop}
-            className="specialBtn px-4 py-2 rounded-lg text-blue-400 flex items-center gap-2"
+            className="specialBtn px-4 py-2 rounded-lg text-blue-700 flex items-center gap-2"
           >
             <p>Finish &amp; review</p>
             <i className="fa-solid fa-stop"></i>

@@ -12,7 +12,7 @@ interface InformationProps {
 }
 
 export default function Information({ transcript, audioUrl, onVoiceStart }: InformationProps) {
-  const [tab, setTab] = useState<Tab>('ask')
+  const [tab, setTab] = useState<Tab>('transcript')
   const [hideFlagged, setHideFlagged] = useState(false)
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -87,9 +87,9 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
   }
 
   return (
-    <main className="flex-1 p-4 flex flex-col gap-4 pb-20 w-full max-w-3xl mx-auto min-h-0">
+    <main className="flex-1 p-4 flex flex-col gap-4 pb-20 w-full max-w-2xl mx-auto min-h-0">
       <h1 className="font-semibold text-4xl sm:text-5xl">
-        <span className="text-blue-400 bold">Done</span>{' '}
+        <span className="text-blue-700 bold">Done</span>{' '}
         <span className="text-slate-400 text-2xl align-middle">
           {transcript.segments.length} segments · {formatTimestamp(transcript.duration)}
         </span>
@@ -129,7 +129,7 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
                 key={entry.format}
                 type="button"
                 onClick={() => download(entry.format)}
-                className="specialBtn px-3 py-1 rounded-lg text-blue-400"
+                className="specialBtn px-3 py-1 rounded-lg text-blue-700"
               >
                 {entry.label}
               </button>
@@ -137,7 +137,7 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
             <button
               type="button"
               onClick={() => void copyText()}
-              className="specialBtn px-3 py-1 rounded-lg text-blue-400"
+              className="specialBtn px-3 py-1 rounded-lg text-blue-700"
             >
               {copied ? 'Copied ✓' : 'Copy'}
             </button>
@@ -153,7 +153,7 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4 overflow-y-auto max-h-[50vh]">
+          <div className="rounded-2xl border border-sky-200 bg-white/85 p-5 space-y-5 overflow-y-auto max-h-[60vh] text-slate-900 shadow-sm">
             {visibleSegments.length === 0 && (
               <p className="text-slate-400 italic text-sm">
                 Every segment was flagged — uncheck the box above to review them.
@@ -162,18 +162,18 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
             {visibleSegments.map((segment) => (
               <div
                 key={segment.id}
-                className={'text-sm ' + (segment.flagged ? 'opacity-60' : '')}
+                className={'text-base leading-7 ' + (segment.flagged ? 'opacity-60' : '')}
               >
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-1.5">
                   <button
                     type="button"
                     onClick={() => seekTo(segment.start)}
-                    className="text-slate-400 font-mono whitespace-nowrap hover:text-blue-500 duration-200"
+                    className="text-xs text-slate-500 font-mono hover:text-blue-600 duration-200"
                     title="Seek to segment"
                   >
                     [{formatTimestamp(segment.start)}]
                   </button>
-                  <p className="flex-1 leading-relaxed">
+                  <p className="leading-relaxed break-words">
                     {segment.words.map((word, wordIndex) => (
                       <span
                         key={wordIndex}
@@ -212,9 +212,8 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
 
       {tab === 'voice' && (
         <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 text-center">
-          <p className="text-slate-500 text-sm">
-            Talk out loud about this recording. XScribe answers with real speech via OpenAI&apos;s
-            realtime voice model, using your transcript as context.
+          <p className="text-slate-600 text-sm">
+            Talk out loud about this recording. XScribe answers with natural speech using your transcript as context.
           </p>
           <p className="text-xs text-slate-400">
             Microphone audio streams directly to the model over WebRTC — nothing is recorded or
@@ -223,7 +222,7 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
           <button
             type="button"
             onClick={onVoiceStart}
-            className="specialBtn px-4 py-2 rounded-lg text-blue-400 mx-auto flex items-center gap-2 font-medium"
+            className="specialBtn px-4 py-2 rounded-lg text-blue-700 mx-auto flex items-center gap-2 font-medium"
           >
             <p>Start voice chat</p>
             <i className="fa-solid fa-headset"></i>
