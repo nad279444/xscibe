@@ -25,6 +25,14 @@ export async function startLiveCapture(handlers: UtteranceHandlers): Promise<Liv
       // library default ("./") can resolve against deep routes. Serve from root
       // instead (worklet + silero_vad_legacy.onnx live in public/).
       baseAssetPath: '/',
+      ortConfig: (ort) => {
+        const runtimeVersion = ort.env.versions.common
+        const wasmAssetBase = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${runtimeVersion}/dist/`
+        ort.env.wasm.wasmPaths = {
+          mjs: `${wasmAssetBase}ort-wasm-simd-threaded.mjs`,
+          wasm: `${wasmAssetBase}ort-wasm-simd-threaded.wasm`,
+        }
+      },
       positiveSpeechThreshold: 0.6,
       negativeSpeechThreshold: 0.35,
       minSpeechMs: 150,

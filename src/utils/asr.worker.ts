@@ -12,7 +12,7 @@ import { groupWordsIntoSegments } from '../lib/audio/decode'
 env.allowLocalModels = false
 
 const onnxRuntime = env.backends.onnx
-const onnxVersion = onnxRuntime.versions?.web
+const onnxVersion = onnxRuntime.versions?.web ?? onnxRuntime.versions?.common
 if (onnxRuntime.wasm && onnxVersion) {
   const wasmAssetBase = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${onnxVersion}/dist/`
   onnxRuntime.wasm.wasmPaths = {

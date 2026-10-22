@@ -39,7 +39,7 @@ src/
 
 - **Model downloads** stream from the Hugging Face Hub into the browser (first run only,
   cached by the browser). Model size and device are shown in the UI.
-- **GPU fallback diagnostics** show the WebGPU initialization error when a model falls back to WASM. ONNX Runtime's version-matched WASM module and binary load from its published asset URL, avoiding broken relative URLs produced by the Next.js worker bundle. The device badge also reports when the browser does not expose WebGPU or cannot find an adapter.
+- **GPU and WASM diagnostics** use version-matched ONNX Runtime asset URLs for both transcription and live VAD, avoiding broken relative URLs produced by the Next.js bundle. The device badge reports WebGPU initialization errors and when the browser cannot find an adapter.
 - **Rate limiting** for the edge functions is a per-instance token bucket
   (`src/lib/server/rateLimit.ts`) — good enough for a demo, not a substitute for a real quota system.
 
