@@ -10,8 +10,8 @@ export function audioBucket() {
   const privateKey = process.env.PRIVATE_KEY
     ?.trim()
     .replace(/^['"]|['"]$/g, '')
-    .replace(/\\r\\n/g, '\n')
-    .replace(/\\n/g, '\n')
+    .replace(/\\+r\\+n/g, '\n')
+    .replace(/\\+n/g, '\n')
     .replace(/\r\n/g, '\n')
   if (!bucketName || !clientEmail || !privateKey) {
     throw new Error('GCS_BUCKET_NAME, CLIENT_EMAIL, and PRIVATE_KEY are required')
