@@ -1,6 +1,7 @@
 import { clientIp, jsonError, rateLimit } from '@/lib/server/rateLimit'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300
 
 const MAX_TRANSCRIPT_CHARS = 150_000
 const MAX_QUESTION_CHARS = 4_000

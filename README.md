@@ -10,7 +10,7 @@ a streaming LLM, or have a real-time voice conversation about it.
 
 | Area | What it does |
 | --- | --- |
-| File transcription | OpenAI GPT-Transcribe runs behind a server-side Next.js route. Audio up to 20 MB uploads directly to a private Google Cloud Storage bucket. |
+| File transcription | Audio up to 20 MB uploads directly to a private Google Cloud Storage bucket, then the Next.js server sends it to OpenAI GPT-Transcribe. |
 | Word seek positions | GPT-Transcribe does not return word timestamps; XScribe estimates positions across the audio duration. Click a word to seek approximately. |
 | Live transcription | Microphone audio streams through an AudioWorklet to OpenAI Realtime using an ephemeral session token. |
 | Hallucination guard | Segments are scored for common ASR artifacts ("Thank you for watching…"), n-gram loops, impossible speech rates and dead air. Flagged segments are visibly marked and can be hidden or stripped on export. |
@@ -20,7 +20,7 @@ a streaming LLM, or have a real-time voice conversation about it.
 | Robot-inspired dashboard | The landing screen puts file transcription, microphone recording, and live transcription up front, with chat and voice features previewed. |
 | Transcript chat | Chat opens as the first result view. Ask questions grounded in the transcript, then switch to word-timed text, exports, or voice chat. |
 | State handling | A strict `useReducer` state machine (`src/app/machine.ts`) owns every phase — the UI is a pure function of state, with exhaustive event checking at compile time. |
-| Privacy | Audio is sent to OpenAI for transcription. The API key stays server-side; avoid uploading audio you are not authorized to share. |
+| Privacy | Audio is temporarily stored in a private GCS bucket and sent to OpenAI for transcription. API credentials remain server-side. |
 
 ## Architecture
 
@@ -28,17 +28,19 @@ a streaming LLM, or have a real-time voice conversation about it.
 src/
   app/machine.ts        state machine: AppPhase / AppState / AppEvent (exhaustive union)
   lib/asr/              transcript hallucination guard
-  lib/audio/            AudioWorklet live capture
+  lib/audio/            upload limits and AudioWorklet live capture
   lib/export/           SRT / VTT / JSON / TXT renderers
-  lib/openai/           transcription, Realtime live stream, chat, and WebRTC voice
+  lib/openai/           browser transcription client, Realtime, chat, and voice clients
+  lib/server/           GCS bucket client and API rate limiting
   components/           one component per screen, no business logic
-  app/api/               Next.js route handlers (transcribe, chat, live SDP exchange)
+  app/api/              GCS upload tickets, transcription, chat, and live sessions
 ```
 
-- **File uploads** use `gpt-transcribe` via `/api/transcribe`; the route keeps `OPENAI_API_KEY` server-side. GPT-Transcribe returns text but not word timestamps, so the UI estimates word positions across the audio duration ([OpenAI transcription guide](https://developers.openai.com/api/docs/guides/transcription)).
-- **Large uploads** use a short-lived GCS signed URL: the browser uploads directly to a private bucket, then the server validates, transcribes, and deletes the object. This bypasses Vercel's 4.5 MB Function payload limit; files are capped at 20 MB ([Vercel function limits](https://vercel.com/docs/functions/limitations), [GCS signed URLs](https://cloud.google.com/storage/docs/access-control/signed-urls)).
+- **File transcription flow:** the browser requests an upload ticket from `POST /api/transcribe/upload` with file metadata. The route validates the size/type, rate-limits ticket requests, and returns a random object path plus a 10-minute GCS signed `PUT` URL. The browser uploads directly to the private bucket, then posts the object path to `POST /api/transcribe`. The server validates the path and stored size, downloads and deletes the object, forwards the audio to OpenAI, normalizes the response, and applies the hallucination guard. Audio is capped at 20 MB. Direct multipart requests to `/api/transcribe` remain limited to 4 MB; the app uses GCS for its normal upload flow ([Vercel function limits](https://vercel.com/docs/functions/limitations), [GCS signed URLs](https://cloud.google.com/storage/docs/access-control/signed-urls)).
+- **Transcription runtime:** `/api/transcribe` allows up to 300 seconds for server-side transcription, subject to the hosting platform's function-duration limits. GCS objects are deleted during normal processing; configure a bucket lifecycle rule to remove old `audio-uploads/` objects as a safety net for abandoned or interrupted uploads.
+- **Chat flow:** the browser posts the transcript, question, and recent history to `/api/chat`. The route bounds transcript/question/history sizes, rate-limits requests, and streams text deltas from the OpenAI Responses API to the UI. Chat is grounded in the supplied transcript and has a configured maximum runtime of 300 seconds.
 - **Live transcription** streams 24 kHz PCM over a persistent browser WebSocket. A Next.js route mints a short-lived Realtime client secret; the permanent API key remains server-side. An AudioWorklet performs lightweight energy-based turn detection and commits audio turns.
-- **Model/VAD compatibility:** `gpt-live-transcribe` does not support server VAD and requires the client to commit each turn. XScribe keeps this low-cost detection in the AudioWorklet rather than loading an ONNX model or running MicVAD on the main thread. See the [Realtime transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription).
+- **Model/VAD compatibility:** `gpt-live-transcribe` uses client-side turn commits, with lightweight energy detection in the AudioWorklet rather than ONNX inference or MicVAD on the main thread. See the [Realtime transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription).
 - **Rate limiting** for API routes is a per-instance token bucket
   (`src/lib/server/rateLimit.ts`) — good enough for a demo, not a substitute for a real quota system.
 
@@ -53,7 +55,7 @@ npm run lint       # eslint
 npm run build      # typecheck + production build
 ```
 
-Transcription, live mode, transcript chat, and voice all require an OpenAI API key:
+File transcription, live mode, transcript chat, and voice require an OpenAI API key. GCS-backed file uploads also require a Google Cloud service account and private bucket:
 
 ```bash
 # .env.local (never commit; credentials are only read by server routes)
@@ -68,7 +70,7 @@ LIVE_MODEL=gpt-live-1
 LIVE_VOICE=marin
 ```
 
-The API key is only read server-side in `src/app/api/` and is never shipped to the browser. Transcription requires network access and may incur OpenAI API charges. Browser GPU availability no longer affects transcription speed; inference runs on OpenAI's service.
+OpenAI and GCS credentials are only read server-side and are never shipped to the browser. Transcription requires network access and may incur OpenAI API and GCS storage/operation charges. Browser GPU availability no longer affects file-transcription speed; inference runs on OpenAI's service.
 
 ## Deploy (Vercel)
 
@@ -76,7 +78,7 @@ The API key is only read server-side in `src/app/api/` and is never shipped to t
 vercel
 ```
 
-Set `OPENAI_API_KEY`, `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, `CLIENT_EMAIL`, and `PRIVATE_KEY` in the project's Environment Variables (Production, Preview, and Development as needed). The service account needs permission to sign URLs and create, read, and delete objects in the bucket. Configure bucket CORS to allow `PUT` from your app's deployed origin (and `http://localhost:3000` for local development), with the `Content-Type` request header. File transcription uses `gpt-transcribe`; live transcription uses the Realtime API.
+Set `OPENAI_API_KEY`, `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, `CLIENT_EMAIL`, and `PRIVATE_KEY` in the project's Environment Variables (Production, Preview, and Development as needed). `PRIVATE_KEY` must be the PEM private key from the service-account JSON. The service account needs permission to create, read, and delete objects in the bucket. Configure bucket CORS to allow `PUT` from your deployed app origin (and `localhost` for local development), with the `Content-Type` request header. Use a bucket lifecycle rule to remove abandoned uploads. File transcription uses `gpt-transcribe`; live transcription uses the Realtime API.
 
 Keep the OpenAI spend cap low (≈ $3) — voice sessions bill per second while connected.
 
