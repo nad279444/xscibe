@@ -7,7 +7,7 @@ let storage: Storage | undefined
 export function audioBucket() {
   const bucketName = process.env.GCS_BUCKET_NAME
   const clientEmail = process.env.CLIENT_EMAIL
-  const privateKey = process.env.PRIVATE_KEY
+  const privateKey = (process.env.PRIVATE_KEY ?? process.env.private_key)
     ?.trim()
     .replace(/^['"]|['"]$/g, '')
     .replace(/\\+r\\+n/g, '\n')
