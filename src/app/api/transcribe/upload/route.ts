@@ -1,21 +1,14 @@
 import { audioBucket } from '@/lib/server/gcs'
 import { clientIp, jsonError, rateLimit } from '@/lib/server/rateLimit'
-import { MAX_TRANSCRIPTION_UPLOAD_BYTES } from '@/lib/audio/uploadLimits'
+import {
+  isSupportedAudioType,
+  MAX_TRANSCRIPTION_UPLOAD_BYTES,
+  MAX_TRANSCRIPTION_UPLOAD_MB,
+  SUPPORTED_AUDIO_DESCRIPTION,
+} from '@/lib/audio/uploadLimits'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const AUDIO_TYPES = new Set([
-  'audio/mpeg',
-  'audio/mp4',
-  'audio/wav',
-  'audio/x-wav',
-  'audio/webm',
-  'audio/ogg',
-  'audio/flac',
-  'video/mp4',
-  'application/octet-stream',
-])
 
 export async function POST(request: Request): Promise<Response> {
   if (!rateLimit(`gcs-upload:${clientIp(request)}`, 8, 60 * 60 * 1000)) {
@@ -32,9 +25,11 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError(400, 'Filename and content type are required')
   }
   if (!Number.isSafeInteger(body.size) || (body.size as number) < 1 || (body.size as number) > MAX_TRANSCRIPTION_UPLOAD_BYTES) {
-    return jsonError(413, 'Audio must be 20 MB or smaller')
+    return jsonError(413, `Audio must be ${MAX_TRANSCRIPTION_UPLOAD_MB} MB or smaller`)
   }
-  if (!AUDIO_TYPES.has(body.contentType)) return jsonError(400, 'Unsupported audio type')
+  if (!isSupportedAudioType(body.contentType, body.filename)) {
+    return jsonError(400, `Unsupported audio type. Use ${SUPPORTED_AUDIO_DESCRIPTION}.`)
+  }
 
   try {
     const filename = body.filename.replace(/[^\w.-]+/g, '_').slice(-120) || 'audio.webm'

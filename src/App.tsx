@@ -100,7 +100,17 @@ export default function App() {
     try {
       if (fileRequestId.current !== requestId) return
       dispatch({ type: 'TRANSCRIBE_STARTED' })
-      const transcript = await transcribeAudio(blob, source.name, controller.signal, durationSeconds)
+      const transcript = await transcribeAudio(
+        blob,
+        source.name,
+        controller.signal,
+        durationSeconds,
+        (text) => {
+          if (fileRequestId.current === requestId) {
+            dispatch({ type: 'TRANSCRIPTION_PARTIAL', text })
+          }
+        },
+      )
       if (fileRequestId.current === requestId) {
         dispatch({ type: 'TRANSCRIPTION_FINAL', transcript })
       }
@@ -250,6 +260,7 @@ export default function App() {
           <Transcribing
             label="Transcribing your audio"
             detail="Sending audio securely for transcription"
+            preview={state.transcriptionText}
           />
         )
 

@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  MAX_TRANSCRIPTION_UPLOAD_MB,
+  SUPPORTED_AUDIO_EXTENSIONS,
+  validateAudioFile,
+} from '../lib/audio/uploadLimits'
+
+const ACCEPT = [...SUPPORTED_AUDIO_EXTENSIONS.map((extension) => `.${extension}`), 'audio/*'].join(',')
 
 interface HomePageProps {
   onSelectFile: (file: File) => void
@@ -17,6 +24,7 @@ export default function HomePage({
 }: HomePageProps) {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>('inactive')
   const [duration, setDuration] = useState(0)
+  const [fileError, setFileError] = useState<string | null>(null)
   const [recordingError, setRecordingError] = useState<string | null>(null)
 
   const mediaRecorder = useRef<MediaRecorder | null>(null)
@@ -44,7 +52,14 @@ export default function HomePage({
         chunks.current = []
         setRecordingStatus('inactive')
         setDuration(0)
-        if (blob.size > 0) onSelectRecording(blob)
+        if (blob.size === 0) return
+        const problem = validateAudioFile({ name: 'recording.webm', size: blob.size, type: blob.type })
+        if (problem) {
+          setRecordingError(problem)
+          return
+        }
+        setRecordingError(null)
+        onSelectRecording(blob)
       }
       media.start()
       setRecordingStatus('recording')
@@ -102,17 +117,27 @@ export default function HomePage({
               </span>
               <span>
                 <span className="block font-semibold text-slate-900">Transcribe a file</span>
-                <span className="mt-1 block text-xs text-slate-600">Cloud transcription · up to 4 MB</span>
+                <span className="mt-1 block text-xs text-slate-600">
+                  Cloud transcription · up to {MAX_TRANSCRIPTION_UPLOAD_MB} MB
+                </span>
               </span>
               <input
                 onChange={(event) => {
                   const file = event.target.files?.[0]
-                  if (file) onSelectFile(file)
+                  if (file) {
+                    const problem = validateAudioFile(file)
+                    if (problem) {
+                      setFileError(problem)
+                    } else {
+                      setFileError(null)
+                      onSelectFile(file)
+                    }
+                  }
                   event.target.value = ''
                 }}
                 className="sr-only"
                 type="file"
-                accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm,.ogg,.flac,audio/*"
+                accept={ACCEPT}
               />
             </label>
 
@@ -132,7 +157,8 @@ export default function HomePage({
               </span>
             </button>
           </div>
-          {recordingError && <p className="text-sm text-rose-300">{recordingError}</p>}
+          {fileError && <p className="text-sm text-rose-600">{fileError}</p>}
+          {recordingError && <p className="text-sm text-rose-600">{recordingError}</p>}
 
           <button
             type="button"

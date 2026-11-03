@@ -1,15 +1,22 @@
 import type { Transcript } from '@/app/types'
-import { MAX_TRANSCRIPTION_UPLOAD_BYTES } from '@/lib/audio/uploadLimits'
+import { validateAudioFile } from '@/lib/audio/uploadLimits'
+
+interface TranscriptionStreamEvent {
+  type?: string
+  text?: string
+  message?: string
+  transcript?: Transcript
+}
 
 export async function transcribeAudio(
   blob: Blob,
   filename: string,
   signal?: AbortSignal,
   durationSeconds?: number,
+  onPartial?: (text: string) => void,
 ): Promise<Transcript> {
-  if (blob.size > MAX_TRANSCRIPTION_UPLOAD_BYTES) {
-    throw new Error('Audio must be 20 MB or smaller')
-  }
+  const problem = validateAudioFile({ name: filename, size: blob.size, type: blob.type })
+  if (problem) throw new Error(problem)
 
   const safeName = filename.replace(/[^\w.-]+/g, '_').slice(-120) || 'audio.webm'
   const contentType = blob.type || 'application/octet-stream'
@@ -38,19 +45,68 @@ export async function transcribeAudio(
 
   const response = await fetch('/api/transcribe', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({ objectName: ticket.objectName, filename: safeName, durationSeconds }),
     signal,
   })
-  const payload = (await response.json().catch(() => ({}))) as {
-    error?: string
-    transcript?: Transcript
-  }
 
-  if (!response.ok || !payload.transcript) {
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string }
     throw new Error(payload.error ?? `Transcription failed (${response.status})`)
   }
-  return payload.transcript
+
+  if (!(response.headers.get('content-type') ?? '').includes('text/event-stream')) {
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string
+      transcript?: Transcript
+    }
+    if (!payload.transcript) throw new Error(payload.error ?? 'Transcription failed')
+    return payload.transcript
+  }
+
+  if (!response.body) throw new Error('Transcription response has no body')
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let transcript: Transcript | null = null
+
+  const handleEvent = (event: TranscriptionStreamEvent) => {
+    if (event.type === 'partial' && typeof event.text === 'string') {
+      onPartial?.(event.text)
+    } else if (event.type === 'final' && event.transcript) {
+      transcript = event.transcript
+    } else if (event.type === 'error') {
+      throw new Error(event.message ?? 'Transcription failed')
+    }
+  }
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let boundary = /\r?\n\r?\n/.exec(buffer)
+      while (boundary) {
+        const raw = buffer.slice(0, boundary.index)
+        buffer = buffer.slice(boundary.index + boundary[0].length)
+        const data = raw
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith('data:'))
+          .map((line) => line.slice(5).trim())
+          .join('\n')
+        if (data && data !== '[DONE]') {
+          handleEvent(JSON.parse(data) as TranscriptionStreamEvent)
+        }
+        boundary = /\r?\n\r?\n/.exec(buffer)
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  if (!transcript) throw new Error('Transcription stream ended without a result')
+  return transcript
 }
 
 export function encodeWav(samples: Float32Array, sampleRate = 16_000): Blob {

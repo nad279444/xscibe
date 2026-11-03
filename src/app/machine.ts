@@ -25,6 +25,7 @@ export interface AppState {
   source: AudioSource | null
   transcript: Transcript | null
   partialText: string
+  transcriptionText: string
   error: string | null
   liveSegments: Segment[]
   voiceStatus: VoiceStatus
@@ -37,6 +38,7 @@ export const initialState: AppState = {
   source: null,
   transcript: null,
   partialText: '',
+  transcriptionText: '',
   error: null,
   liveSegments: [],
   voiceStatus: 'idle',
@@ -49,6 +51,7 @@ export type AppEvent =
   | { type: 'RESET' }
   | { type: 'SUBMIT_FILE' }
   | { type: 'TRANSCRIBE_STARTED' }
+  | { type: 'TRANSCRIPTION_PARTIAL'; text: string }
   | { type: 'TRANSCRIPTION_FINAL'; transcript: Transcript }
   | { type: 'TRANSCRIPTION_ERROR'; message: string }
   | { type: 'START_LIVE' }
@@ -83,7 +86,12 @@ export function reducer(state: AppState, event: AppEvent): AppState {
 
     case 'SUBMIT_FILE':
       if (!state.source || state.phase.status !== 'ready') return state
-      return withRequestId({ ...state, phase: { status: 'decoding' }, error: null })
+      return withRequestId({
+        ...state,
+        phase: { status: 'decoding' },
+        error: null,
+        transcriptionText: '',
+      })
 
     case 'TRANSCRIBE_STARTED': {
       if (
@@ -95,6 +103,10 @@ export function reducer(state: AppState, event: AppEvent): AppState {
       return state
     }
 
+    case 'TRANSCRIPTION_PARTIAL':
+      if (state.phase.status !== 'transcribing') return state
+      return { ...state, transcriptionText: event.text }
+
     case 'TRANSCRIPTION_FINAL':
       if (state.phase.status !== 'transcribing') return state
       return {
@@ -102,6 +114,7 @@ export function reducer(state: AppState, event: AppEvent): AppState {
         phase: { status: 'done' },
         transcript: event.transcript,
         partialText: '',
+        transcriptionText: '',
       }
 
     case 'TRANSCRIPTION_ERROR':
@@ -119,6 +132,7 @@ export function reducer(state: AppState, event: AppEvent): AppState {
         phase: { status: 'liveLoading' },
         transcript: null,
         partialText: '',
+        transcriptionText: '',
         liveSegments: [],
         error: null,
       })
