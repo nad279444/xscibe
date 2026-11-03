@@ -67,7 +67,7 @@ PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 # optional overrides
 CHAT_MODEL=gpt-6-luna
 LIVE_MODEL=gpt-live-1
-LIVE_VOICE=marin
+LIVE_VOICE=cedar
 ```
 
 OpenAI and GCS credentials are only read server-side and are never shipped to the browser. Transcription requires network access and may incur OpenAI API and GCS storage/operation charges. Browser GPU availability no longer affects file-transcription speed; inference runs on OpenAI's service.

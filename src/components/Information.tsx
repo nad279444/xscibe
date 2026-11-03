@@ -95,7 +95,13 @@ export default function Information({ transcript, audioUrl, onVoiceStart }: Info
         </span>
       </h1>
 
-      <audio ref={audioRef} src={audioUrl} className="w-full" controls></audio>
+      {audioUrl ? (
+        <audio ref={audioRef} src={audioUrl} className="w-full" controls></audio>
+      ) : (
+        <p className="text-xs text-slate-500">
+          Playback is unavailable because no audio was captured for this transcript.
+        </p>
+      )}
 
       <div className="flex gap-1 border-b border-slate-200">
         {(

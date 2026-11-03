@@ -60,7 +60,7 @@ export type AppEvent =
   | { type: 'LIVE_PARTIAL'; text: string }
   | { type: 'LIVE_SEGMENT'; segment: Segment }
   | { type: 'STOP_LIVE' }
-  | { type: 'LIVE_TRANSCRIPT'; transcript: Transcript }
+  | { type: 'LIVE_TRANSCRIPT'; transcript: Transcript; source?: AudioSource | null }
   | { type: 'LIVE_ERROR'; message: string }
   | { type: 'VOICE_CONNECTING' }
   | { type: 'VOICE_ACTIVE' }
@@ -189,6 +189,7 @@ export function reducer(state: AppState, event: AppEvent): AppState {
         ...state,
         phase: { status: 'done' },
         transcript: event.transcript,
+        source: event.source ?? null,
         partialText: '',
       }
 

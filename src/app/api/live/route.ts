@@ -60,7 +60,7 @@ export async function POST(request: Request): Promise<Response> {
         model: process.env.LIVE_MODEL ?? 'gpt-live-1',
         instructions,
         audio: {
-          output: { voice: process.env.LIVE_VOICE ?? 'marin' },
+          output: { voice: process.env.LIVE_VOICE ?? 'cedar' },
         },
         delegation: {
           type: 'responses',

@@ -15,7 +15,7 @@ interface TranscriptHandlers {
 }
 
 export interface RealtimeTranscription {
-  stop: () => Promise<void>
+  stop: () => Promise<Blob | null>
   close: () => void
 }
 
@@ -127,6 +127,8 @@ export async function openRealtimeTranscription(
   let source: MediaStreamAudioSourceNode | null = null
   let worklet: AudioWorkletNode | null = null
   let silentGain: GainNode | null = null
+  let recorder: MediaRecorder | null = null
+  let recording: Promise<Blob | null> | null = null
   let stopped = false
   let speechStartedAt = 0
   let lastSpeechAt = 0
@@ -140,10 +142,41 @@ export async function openRealtimeTranscription(
   const finalWaiters: Array<() => void> = []
   const startedAt = performance.now()
   const preRoll: Float32Array[] = []
+  const recordingChunks: Blob[] = []
   let preRollLimit = 1
 
   const send = (event: object) => {
     if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(event))
+  }
+
+  const finishRecording = (): Promise<Blob | null> => {
+    if (recording) return recording
+    const active = recorder
+    if (!active) return Promise.resolve(null)
+    const build = () =>
+      recordingChunks.length > 0
+        ? new Blob(recordingChunks, { type: active.mimeType || 'audio/webm' })
+        : null
+    if (active.state === 'inactive') {
+      const blob = build()
+      recordingChunks.length = 0
+      recording = Promise.resolve(blob)
+      return recording
+    }
+    recording = new Promise((resolve) => {
+      active.addEventListener('stop', () => {
+        const blob = build()
+        recordingChunks.length = 0
+        resolve(blob)
+      }, { once: true })
+      active.addEventListener('error', () => resolve(null), { once: true })
+      try {
+        active.stop()
+      } catch {
+        resolve(null)
+      }
+    })
+    return recording
   }
 
   socket.addEventListener('message', (message) => {
@@ -182,6 +215,17 @@ export async function openRealtimeTranscription(
 
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } })
+    if (typeof MediaRecorder !== 'undefined') {
+      try {
+        recorder = new MediaRecorder(stream)
+        recorder.addEventListener('dataavailable', (event) => {
+          if (event.data && event.data.size > 0) recordingChunks.push(event.data)
+        })
+        recorder.start(1000)
+      } catch {
+        recorder = null
+      }
+    }
     context = new AudioContext()
     preRollLimit = Math.ceil((PRE_ROLL_MS / 1000) * context.sampleRate / 2048) + 1
     await context.audioWorklet.addModule('/live-audio-processor.js')
@@ -250,13 +294,21 @@ export async function openRealtimeTranscription(
     source?.disconnect()
     worklet?.disconnect()
     silentGain?.disconnect()
+    if (recorder && recorder.state !== 'inactive') {
+      try {
+        recorder.stop()
+      } catch {
+        // Recorder was already stopping.
+      }
+    }
     stream?.getTracks().forEach((track) => track.stop())
     void context?.close()
   }
 
   return {
     stop: async () => {
-      if (stopped) return
+      if (stopped) return null
+      const recorded = finishRecording()
       cleanup()
       if (speechStartedAt !== 0 && speechSamples >= (24000 * MIN_SPEECH_MS) / 1000) {
         turnStarts.push(speechStartedAt)
@@ -270,6 +322,7 @@ export async function openRealtimeTranscription(
         ])
       }
       socket.close()
+      return recorded
     },
     close: () => {
       cleanup()

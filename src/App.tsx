@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useReducer, useRef } from 'react'
 import { initialState, reducer } from './app/machine'
-import type { Segment } from './app/types'
+import type { AudioSource, Segment } from './app/types'
 import { analyzeTranscript } from './lib/asr/guard'
 import { startLiveCapture, type LiveCapture } from './lib/audio/liveCapture'
 import { transcribeAudio } from './lib/openai/transcribe'
@@ -40,7 +40,7 @@ export default function App() {
 
   const nextId = () => ++nextRequestId.current
 
-  function finalizeLive() {
+  function finalizeLive(recording: Blob | null) {
     if (!stoppingLive.current) return
     liveActive.current = false
     const segments = liveSegmentsRef.current
@@ -51,13 +51,17 @@ export default function App() {
     const text = segments.map((segment) => segment.text).join(' ').trim()
     const duration = segments[segments.length - 1]?.end ?? 0
     const transcript = analyzeTranscript({ text, segments, duration })
-    dispatch({ type: 'LIVE_TRANSCRIPT', transcript })
+    const stamp = formatShortTimestamp(Math.floor(Date.now() / 1000) % 3600)
+    const source: AudioSource | null = recording
+      ? { kind: 'recording', blob: recording, name: `Recording ${stamp}.webm` }
+      : null
+    dispatch({ type: 'LIVE_TRANSCRIPT', transcript, source })
   }
 
   useEffect(() => {
     return () => {
       fileAbortController.current?.abort()
-      captureRef.current?.stop()
+      void captureRef.current?.stop()
       captureRef.current = null
       voiceSessionRef.current?.close()
       voiceSessionRef.current = null
@@ -129,7 +133,7 @@ export default function App() {
     fileRequestId.current = -1
     fileAbortController.current?.abort()
     fileAbortController.current = null
-    captureRef.current?.stop()
+    void captureRef.current?.stop()
     captureRef.current = null
     liveActive.current = false
     stoppingLive.current = false
@@ -188,8 +192,17 @@ export default function App() {
   function handleStopLive() {
     dispatch({ type: 'STOP_LIVE' })
     stoppingLive.current = true
-    void captureRef.current?.stop().finally(() => finalizeLive())
+    const capture = captureRef.current
     captureRef.current = null
+    void (async () => {
+      let recording: Blob | null = null
+      try {
+        recording = (await capture?.stop()) ?? null
+      } catch {
+        recording = null
+      }
+      finalizeLive(recording)
+    })()
   }
 
   function handleStartVoice() {
