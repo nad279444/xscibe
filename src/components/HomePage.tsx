@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { getMicrophoneStream } from '../lib/audio/microphone'
 import {
   MAX_TRANSCRIPTION_UPLOAD_MB,
   SUPPORTED_AUDIO_EXTENSIONS,
@@ -34,7 +35,7 @@ export default function HomePage({
   async function startRecording() {
     setRecordingError(null)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      const stream = await getMicrophoneStream()
       mediaStream.current = stream
       chunks.current = []
       let media: MediaRecorder

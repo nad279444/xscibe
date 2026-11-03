@@ -1,4 +1,5 @@
 import type { Segment, Word } from '@/app/types'
+import { getMicrophoneStream } from '@/lib/audio/microphone'
 
 interface ServerEvent {
   type?: string
@@ -214,7 +215,7 @@ export async function openRealtimeTranscription(
   })
 
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } })
+    stream = await getMicrophoneStream()
     if (typeof MediaRecorder !== 'undefined') {
       try {
         recorder = new MediaRecorder(stream)

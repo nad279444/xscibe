@@ -1,4 +1,5 @@
 import type { VoiceCaption } from '../../app/types'
+import { getMicrophoneStream } from '../audio/microphone'
 
 export interface LiveHandlers {
   onConnected: () => void
@@ -44,9 +45,7 @@ export async function startLiveSession(
   context: string,
   handlers: LiveHandlers,
 ): Promise<LiveSession> {
-  const mic = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-  })
+  const mic = await getMicrophoneStream()
 
   const pc = new RTCPeerConnection()
   const speaker = new Audio()
